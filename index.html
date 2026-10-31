@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Healthy Habits Tracker · Select spreadsheet</title><script src="https://accounts.google.com/gsi/client" async defer></script><script src="https://apis.google.com/js/api.js" async defer></script><style>body{font:16px system-ui;background:#fff8f0;color:#54364a;max-width:520px;margin:60px auto;padding:20px}button{background:#e85d9a;color:white;padding:14px;border:0;border-radius:10px;font-size:16px}#status{margin-top:20px}</style></head><body><h2>Select your Health habits track spreadsheet</h2><p>Sign in with the same Google account used by the Android app. Select only your existing tracker spreadsheet.</p><button id="start">Sign in and choose spreadsheet</button><p id="status"></p><script>
+// Replace these with values from YOUR Google Cloud project. Never put a client secret here.
+const WEB_CLIENT_ID = 'REPLACE_WITH_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com';
+const PICKER_API_KEY = 'REPLACE_WITH_PICKER_API_KEY';
+const CLOUD_PROJECT_NUMBER = '698032158163';
+const EXPECTED_SHEET_ID = '1QN2NM4BAo8yyhsKF3oygHByH95RxjUx2WluDIy9AJvk';
+const state = new URLSearchParams(location.search).get('state');
+const status = text => document.getElementById('status').textContent=text;
+let tokenClient;
+document.getElementById('start').onclick=()=>{
+ if(!state){status('Open this page from the Android app.');return;}
+ if(WEB_CLIENT_ID.startsWith('REPLACE')||PICKER_API_KEY.startsWith('REPLACE')){status('Configure WEB_CLIENT_ID and PICKER_API_KEY first.');return;}
+ if(!window.google?.accounts?.oauth2||!window.gapi){status('Google libraries are still loading. Try again.');return;}
+ tokenClient=google.accounts.oauth2.initTokenClient({client_id:WEB_CLIENT_ID,scope:'https://www.googleapis.com/auth/drive.file',callback:r=>{
+   if(r.error){status('Authorization failed: '+r.error);return;}
+   gapi.load('picker',()=>{
+     const view=new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS).setIncludeFolders(false);
+     const picker=new google.picker.PickerBuilder().addView(view).setOAuthToken(r.access_token)
+       .setDeveloperKey(PICKER_API_KEY).setAppId(CLOUD_PROJECT_NUMBER).setOrigin(location.origin)
+       .setCallback(data=>{
+         if(data.action===google.picker.Action.PICKED){
+           const doc=data.docs[0];if(doc.id!==EXPECTED_SHEET_ID){status('Choose your existing Health habits track spreadsheet.');return;}
+           location.href='healthhabits://picker?id='+encodeURIComponent(doc.id)+'&state='+encodeURIComponent(state);
+         }
+       }).build();picker.setVisible(true);
+   });
+ }});
+ tokenClient.requestAccessToken({prompt:'consent'});
+};
+</script></body></html>
